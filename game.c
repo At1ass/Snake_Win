@@ -10,98 +10,41 @@
 #include "field.h"
 #include "movement.h"
 #include "types.h"
-
-#define SET_POS(a, RC) !((snake_body->a - a) == field->RC - 1 || (snake_body->a - a) == 0) ? snake_body->a - a : field->RC - 1 - snake_body->a;
+#include "menu.h"
 
 game_field *field;
 Snake *snake_body;
 
+
+
 int score = 0;
 int speed = 0;
+bool game_state = false;
 
-void gen_fruit()
+void init_game()
 {
-    int x;
-    int y;
-    do
-    {
-        x = rand() % (field->ROW - 2) + 1;
-        y = rand() % (field->COL - 2) + 1;
+    HANDLE hConsole = GetConsoleWindow();
 
-    }
-    while(field->area[x][y] == 'B' || field->area[x][y] == 'o');
+    RECT rect = {100, 100, 300, 450};
 
-    field->area[x][y] = 'A';
+    MoveWindow(hConsole, rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top,TRUE);
 }
 
 void game_over()
 {
-
-    system("cls");
-    printf("YOU FAILED\nYou Score: %d\n", score);
-    game_field_cleanup(&field);
-    cleanup_snake_body(&snake_body);
-
-    exit(EXIT_SUCCESS);
-
-}
-
-bool revert = false;
-void move_snake(int x, int y)
-{
-    int tmp_X = snake_body->x;
-    int tmp_Y = snake_body->y;
-
-    snake_body->x = SET_POS(x, ROW);
-    snake_body->y = SET_POS(y, COL);
-
-    if((field->area[snake_body->x][snake_body->y] == 'o'))
-    {
-        if( snake_body->next->x == snake_body->x || snake_body->next->y == snake_body->y ) {
-            snake_body->x = tmp_X;
-            snake_body->y = tmp_Y;
-
-            revert = true;
-            return; //to move;
-        }
-        else {
-            game_over();
-        }
+    if(!game_state) {
+        system("cls");
+        printf("YOU FAILED\nYou Score: %d\n\n\n\n\n\n\n\n", score);
+        game_field_cleanup(&field);
+        cleanup_snake_body(&snake_body);
     }
-
-    if(field->area[snake_body->x][snake_body->y] == 'A')
+    else
     {
-        //++score;
-        __asm
-        (
-            "mov eax, score \n\
-            inc eax \n\
-            mov score, eax \n"
-        );
-
-        add_tail(&snake_body);
-        gen_fruit();
+        system("cls");
+        printf("YOU WIN\n\n\n\n\n\n\n\n");
+        game_field_cleanup(&field);
+        cleanup_snake_body(&snake_body);
     }
-    field->area[snake_body->x][snake_body->y] = 'B';
-
-    Snake *tmp = snake_body->next;
-    while(tmp != NULL)
-    {
-        int tx = tmp->x;
-        int ty = tmp->y;
-
-        tmp->x = tmp_X;
-        tmp->y = tmp_Y;
-
-        field->area[tmp->x][tmp->y] = 'o';
-
-        tmp_X = tx;
-        tmp_Y = ty;
-
-        tmp = tmp->next;
-    }
-
-    field->area[tmp_X][tmp_Y] = ' ';
 }
 
 void Draw()
@@ -123,6 +66,44 @@ void speed_change()
         is_changed = true;
     }
 }
+bool revert = false;
+void move(int *x_f, int *y_f)
+{
+    int x = *x_f;
+    int y = *y_f;
+    Sleep(150 - speed);
+
+    int input = -1;
+    if(_kbhit())
+        input = _getch();
+    if(input == 119)
+    {
+        MOVE_UP
+    }
+    if(input == 115)
+    {
+        MOVE_DOWN
+    }
+    if(input == 97)
+    {
+        MOVE_LEFT
+    }
+    if(input == 100)
+    {
+        MOVE_RIGHT
+    }
+
+    snake_body->move_snake(snake_body, field, x, y, &revert);
+
+    if(revert) {
+        x *= -1;
+        y *= -1;
+        revert = false;
+    }
+
+    *x_f = x;
+    *y_f = y;
+}
 
 
 int main()
@@ -130,6 +111,15 @@ int main()
 
     int xW = 15, yW = 15;
     int x = -1, y = 0;
+
+    system("cls");
+    init_game();
+
+
+    start_menu();
+
+
+    atexit(game_over);
 
     field = init_field();
     field->field_ops_t->init_game_field_size(&field, xW, yW);
@@ -145,41 +135,18 @@ int main()
             "call Draw"
         );
 
-        Sleep(100 - speed);
+        move(&x, &y);
 
-        int input = -1;
-        if(_kbhit())
-            input = _getch();
-        if(input == 119)
+        if(score >= 10)
         {
-            MOVE_UP
-        }
-        if(input == 115)
-        {
-            MOVE_DOWN
-        }
-        if(input == 97)
-        {
-            MOVE_LEFT
-        }
-        if(input == 100)
-        {
-            MOVE_RIGHT
-        }
-
-        move_snake(x, y);
-
-        if(revert) {
-            x *= -1;
-            y *= -1;
-            revert = false;
+            game_state = true;
+            exit(EXIT_SUCCESS);
         }
 
     }
 
     game_field_cleanup(&field);
     cleanup_snake_body(&snake_body);
-    _getch();
 
     return 0;
 }

@@ -7,6 +7,8 @@
 
 #include "field.h"
 
+void draw_game_field_t(game_field **self);
+
 void generate_game_area_t(game_field **self)
 {
     (*self)->area = (char **)malloc((*self)->ROW * sizeof(char *));
@@ -29,8 +31,6 @@ void generate_game_area_t(game_field **self)
         }
     }
 
-
-
     (*self)->area[4][4] = 'B';
     (*self)->old_area[4][4] = 'B';
     (*self)->area[(*self)->ROW / 2 + 1][(*self)->COL / 2 + 1] = 'A';
@@ -47,6 +47,21 @@ void init_game_field_size_t(game_field **self, int x, int y)
     (*self)->COL = x;
 }
 
+void gen_fruit(game_field ** self)
+{
+    int x;
+    int y;
+    do
+    {
+        x = rand() % ((*self)->ROW - 2) + 1;
+        y = rand() % ((*self)->COL - 2) + 1;
+
+    }
+    while((*self)->area[x][y] == 'B' || (*self)->area[x][y] == 'o');
+
+    (*self)->area[x][y] = 'A';
+}
+
 game_field * init_field()
 {
     game_field * field = (game_field *)calloc(1, sizeof(game_field));
@@ -55,6 +70,7 @@ game_field * init_field()
     field->field_ops_t->init_game_field_size = &init_game_field_size_t;
     field->field_ops_t->generate_game_area = &generate_game_area_t;
     field->field_ops_t->draw_game_field = &draw_game_field_t;
+    field->field_ops_t->generate_fruit = &gen_fruit;
 
     return field;
 }
@@ -84,9 +100,20 @@ void draw_game_field_t(game_field **self)
 
 }
 
+void field_cleanup(game_field **self, char ***field)
+{
+    for(int i = 0; i < (*self)->ROW; ++i)
+        free((*field)[i]);
+    free(*(field));
+}
+
 void game_field_cleanup(game_field **self)
 {
+    field_cleanup(self, &(*self)->area);
+    field_cleanup(self, &(*self)->old_area);
     free((*self)->field_ops_t);
     free((*self));
 }
+
+
 

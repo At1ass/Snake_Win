@@ -20,16 +20,11 @@ struct field_t
 
 struct field_ops
 {
-    void (*init_game_field_size)(game_field **,int, int);
+    void (*init_game_field_size)(game_field **, int, int);
     void (*generate_game_area)(game_field **);
     void (*draw_game_field)(game_field **);
+    void (*generate_fruit)(game_field **);
 };
-
-void generate_game_area_t(game_field **self);
-
-void init_game_field_size_t(game_field **self, int row, int col);
-
-void draw_game_field_t(game_field **self);
 
 game_field * init_field();
 
